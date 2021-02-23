@@ -2,6 +2,13 @@
 Golang OAuth2 server library
 
 例子代码：
+```
+import (
+	"github.com/openshift/osin"
+	"github.com/wangsying/osin-simple/simple"
+	"github.com/wangsying/osin-storage/storage/pg"
+)
+```
 
 ```
 storage := pg.New()
