@@ -140,7 +140,7 @@ func (s *authorize) genAuthorizeData(ar *osin.AuthorizeRequest) (*osin.Authorize
 			UserData:        ar.UserData,
 		}
 
-		NewSimpleAccess(s.Server).GenAccessData(ret)
+		NewAccess(s.Server).GenAccessData(ret)
 
 		return &osin.AuthorizeData{
 			Code:                ret.Code,

@@ -6,20 +6,18 @@ import (
 	"github.com/openshift/osin"
 )
 
+func NewInfo(s *SimpleServer) Info {
+	return &info{
+		Server: s,
+	}
+}
+
 type Info interface {
 	Info(req *osin.InfoRequest) (*AccessResponseData, error)
 }
 
 type info struct {
-	Server *osin.Server
-}
-
-func (s *info) NewInfoRequest(token string) (*osin.InfoRequest, error) {
-	if token == "" {
-		return nil, fmt.Errorf("token is null.")
-	}
-
-	return &osin.InfoRequest{Code: token}, nil
+	Server *SimpleServer
 }
 
 func (s *info) Info(req *osin.InfoRequest) (*AccessResponseData, error) {

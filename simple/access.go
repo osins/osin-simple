@@ -6,7 +6,7 @@ import (
 	"github.com/openshift/osin"
 )
 
-func NewSimpleAccess(s *SimpleServer) SimpleAccess {
+func NewAccess(s *SimpleServer) SimpleAccess {
 	return &simpleAccess{
 		Server: s,
 	}
@@ -21,14 +21,13 @@ type simpleAccess struct {
 	Server *SimpleServer
 }
 
-func (acc *simpleAccess) Access(ar *osin.AccessRequest) (*AccessResponseData, error) {
-	req := acc.accessRequestToRequestValidate(ar)
-	if err := req.Validate(); err != nil {
-		return nil, err
+func (acc *simpleAccess) Access(req *osin.AccessRequest) (*AccessResponseData, error) {
+	if err := acc.convertToValidate(req).Validate(); err != nil {
+		return nil, fmt.Errorf("access type(%s), error: %s", req.Type, err.Error())
 	}
 
-	ar.Authorized = true
-	ad, createErr := acc.GenAccessData(ar)
+	req.Authorized = true
+	ad, createErr := acc.GenAccessData(req)
 	if createErr != nil {
 		return nil, createErr
 	}
@@ -64,8 +63,12 @@ func (acc *simpleAccess) GenAccessData(req *osin.AccessRequest) (*osin.AccessDat
 
 	// generate access token
 	ret.AccessToken, ret.RefreshToken, err = s.AccessTokenGen.GenerateAccessToken(ret, req.GenerateRefresh)
-	if err != nil || ret.AccessToken == req.AccessData.AccessToken || ret.RefreshToken == req.AccessData.RefreshToken {
+	if err != nil {
 		return nil, fmt.Errorf("error generating token")
+	}
+
+	if req.AccessData != nil && ret.AccessToken == req.AccessData.AccessToken {
+		return ret, nil
 	}
 
 	// save access token
@@ -97,7 +100,7 @@ func (acc *simpleAccess) removeOldData(old *osin.AccessRequest, new *osin.Access
 	}
 }
 
-func (s *simpleAccess) accessRequestToRequestValidate(req *osin.AccessRequest) ValidateRequest {
+func (s *simpleAccess) convertToValidate(req *osin.AccessRequest) ValidateRequest {
 	return &accessRequestValidate{
 		server: s.Server,
 		req:    req,

@@ -27,7 +27,7 @@ func (val *accessRequestValidate) Validate() error {
 			return err
 		}
 	case osin.REFRESH_TOKEN:
-		if err := val.authorizeValidate(); err != nil {
+		if err := val.refreshTokenValidate(); err != nil {
 			return err
 		}
 	case osin.PASSWORD:
@@ -77,46 +77,46 @@ func (val *accessRequestValidate) authorizeValidate() error {
 	return nil
 }
 
-func (val *accessRequestValidate) refreshTokenValidate(req *osin.AccessRequest) error {
+func (val *accessRequestValidate) refreshTokenValidate() error {
 	// "refresh_token" is required
-	if req.Code == "" {
+	if val.req.Code == "" {
 		return fmt.Errorf("refresh_token is required")
 	}
 
 	// must have a valid client
-	client, err := val.server.Storage.GetClient(req.Client.GetId())
-	if err != nil || client == nil || client.GetId() != req.Client.GetId() {
+	client, err := val.server.Storage.GetClient(val.req.Client.GetId())
+	if err != nil || client == nil || client.GetId() != val.req.Client.GetId() {
 		return fmt.Errorf("client valid faild.")
 	}
 
 	// must be a valid refresh code
-
-	req.AccessData, err = val.server.Storage.LoadRefresh(req.Code)
+	fmt.Printf("\nrefresh code: %s\n", val.req.Code)
+	val.req.AccessData, err = val.server.Storage.LoadRefresh(val.req.Code)
 	if err != nil {
-		return fmt.Errorf("error loading access data")
+		return fmt.Errorf("error loading access data by refresh code.")
 	}
 
-	if req.AccessData == nil {
+	if val.req.AccessData == nil {
 		return fmt.Errorf("access data is nil")
 	}
 
-	if req.AccessData.Client.GetRedirectUri() == "" {
+	if val.req.AccessData.Client.GetRedirectUri() == "" {
 		return fmt.Errorf("access data client redirect uri is empty")
 	}
 
 	// client must be the same as the previous token
-	if req.AccessData.Client.GetId() != req.Client.GetId() {
+	if val.req.AccessData.Client.GetId() != val.req.Client.GetId() {
 		return fmt.Errorf("Client id must be the same from previous token")
 	}
 
 	// set rest of data
-	req.RedirectUri = req.AccessData.Client.GetRedirectUri()
-	req.UserData = req.AccessData.UserData
-	if req.Scope == "" {
-		req.Scope = req.AccessData.Scope
+	val.req.RedirectUri = val.req.AccessData.Client.GetRedirectUri()
+	val.req.UserData = val.req.AccessData.UserData
+	if val.req.Scope == "" {
+		val.req.Scope = val.req.AccessData.Scope
 	}
 
-	if val.extraScopes(req.AccessData.Scope, req.Scope) {
+	if val.extraScopes(val.req.AccessData.Scope, val.req.Scope) {
 		return fmt.Errorf("the requested scope must not include any scope not originally granted by the resource owner")
 	}
 
