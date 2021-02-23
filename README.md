@@ -4,7 +4,7 @@ Golang OAuth2 server library
 例子代码：
 
 ```
-storage := pg.New()
+	storage := pg.New()
 
 	// ex.NewTestStorage implements the "osin.Storage" interface
 	conf := simple.NewServerConfig()
