@@ -45,7 +45,7 @@ app.Get("/oauth/authorize", func(ctx *fiber.Ctx) error {
 	return nil
 })
 
-// Access token endpoint
+// Access token endpoint (code, refresh code)
 app.Post("/oauth/token", func(ctx *fiber.Ctx) error {
 	req := &osin.AccessRequest{
 		Client: &osin.DefaultClient{
@@ -61,7 +61,7 @@ app.Post("/oauth/token", func(ctx *fiber.Ctx) error {
 		GenerateRefresh: true,
 		Expiration:      server.Config.AccessExpiration,
 	}
-	fmt.Println("grant type:" + req.Type)
+	
 	if ctx.FormValue("refresh_token") != "" {
 		req.AccessData = &osin.AccessData{
 			RefreshToken: ctx.FormValue("refresh_token"),
