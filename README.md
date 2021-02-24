@@ -1,7 +1,7 @@
 # osin-simple
 Golang OAuth2 server library
 
-例子代码：
+JWT生成tokan的例子代码：
 ```
 package main
 
