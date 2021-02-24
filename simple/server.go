@@ -48,7 +48,7 @@ func NewSimpleServer(config *SimpleConfig) *SimpleServer {
 		AccessTokenGen:    config.AccessTokenGen,
 		Now:               time.Now,
 		Logger:            config.Logger,
-		ValidateUser:      config.ValidateUser,
+		UserStorage:       config.UserStorage,
 	}
 }
 
@@ -60,7 +60,7 @@ type SimpleServer struct {
 	AccessTokenGen    osin.AccessTokenGen
 	Now               func() time.Time
 	Logger            osin.Logger
-	ValidateUser      ValidateUser
+	UserStorage       UserStorage
 }
 
 type SimpleConfig struct {
@@ -69,5 +69,5 @@ type SimpleConfig struct {
 	AuthorizeTokenGen osin.AuthorizeTokenGen
 	AccessTokenGen    osin.AccessTokenGen
 	Logger            osin.Logger
-	ValidateUser      ValidateUser
+	UserStorage       UserStorage
 }

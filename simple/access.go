@@ -22,14 +22,26 @@ type simpleAccess struct {
 }
 
 func (acc *simpleAccess) Access(req *osin.AccessRequest) (*AccessResponseData, error) {
-	if err := acc.requestValidate(req).Validate(); err != nil {
+	val := &accessRequestValidate{
+		server: acc.Server,
+		req:    req,
+	}
+
+	var err error
+	if err = val.Validate(); err != nil {
 		return nil, fmt.Errorf("access type(%s), error: %s", req.Type, err.Error())
 	}
 
 	req.Authorized = true
-	ad, createErr := acc.GenAccessData(req)
-	if createErr != nil {
-		return nil, createErr
+
+	var ad *osin.AccessData
+	ad, err = acc.GenAccessData(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Type == osin.PASSWORD && acc.Server.UserStorage != nil {
+		acc.Server.UserStorage.BindToken(ad.AccessToken, val.userId)
 	}
 
 	return &AccessResponseData{
@@ -92,12 +104,5 @@ func (acc *simpleAccess) removeOldData(old *osin.AccessRequest, new *osin.Access
 		if old.AccessData.AccessToken != new.AccessToken && len(old.AccessData.AccessToken) > 0 {
 			s.Storage.RemoveAccess(old.AccessData.AccessToken)
 		}
-	}
-}
-
-func (s *simpleAccess) requestValidate(req *osin.AccessRequest) ValidateRequest {
-	return &accessRequestValidate{
-		server: s.Server,
-		req:    req,
 	}
 }

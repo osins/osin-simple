@@ -10,6 +10,7 @@ import (
 type accessRequestValidate struct {
 	server *SimpleServer
 	req    *osin.AccessRequest
+	userId string
 }
 
 func (val *accessRequestValidate) Validate() error {
@@ -129,11 +130,14 @@ func (val *accessRequestValidate) passwordValidate() error {
 		return fmt.Errorf("username and pass required")
 	}
 
-	if val.server.ValidateUser == nil {
+	if val.server.UserStorage == nil {
 		return nil
 	}
 
-	return val.server.ValidateUser.Vaildate(val.req.Username, val.req.Password)
+	var err error
+	val.userId, err = val.server.UserStorage.GetId(val.req.Username, val.req.Password)
+
+	return err
 }
 
 func (s *accessRequestValidate) extraScopes(access_scopes, refresh_scopes string) bool {
