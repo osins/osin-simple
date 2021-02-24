@@ -19,14 +19,14 @@ type info struct {
 }
 
 func (s *info) Info(req *osin.InfoRequest) (*AccessResponseData, error) {
-	if err := s.convertToValidate(req).Validate(); err != nil {
+	if err := s.requestValidate(req).Validate(); err != nil {
 		return nil, err
 	}
 
 	return s.get(req)
 }
 
-func (s *info) convertToValidate(req *osin.InfoRequest) ValidateRequest {
+func (s *info) requestValidate(req *osin.InfoRequest) ValidateRequest {
 	return &infoRequestValidate{
 		server: s.Server,
 		req:    req,

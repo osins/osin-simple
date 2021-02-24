@@ -22,7 +22,7 @@ type simpleAccess struct {
 }
 
 func (acc *simpleAccess) Access(req *osin.AccessRequest) (*AccessResponseData, error) {
-	if err := acc.convertToValidate(req).Validate(); err != nil {
+	if err := acc.requestValidate(req).Validate(); err != nil {
 		return nil, fmt.Errorf("access type(%s), error: %s", req.Type, err.Error())
 	}
 
@@ -95,7 +95,7 @@ func (acc *simpleAccess) removeOldData(old *osin.AccessRequest, new *osin.Access
 	}
 }
 
-func (s *simpleAccess) convertToValidate(req *osin.AccessRequest) ValidateRequest {
+func (s *simpleAccess) requestValidate(req *osin.AccessRequest) ValidateRequest {
 	return &accessRequestValidate{
 		server: s.Server,
 		req:    req,

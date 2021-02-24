@@ -129,7 +129,11 @@ func (val *accessRequestValidate) passwordValidate() error {
 		return fmt.Errorf("username and pass required")
 	}
 
-	return nil
+	if val.server.ValidateUser == nil {
+		return nil
+	}
+
+	return val.server.ValidateUser.Vaildate(val.req.Username, val.req.Password)
 }
 
 func (s *accessRequestValidate) extraScopes(access_scopes, refresh_scopes string) bool {

@@ -22,7 +22,7 @@ type authorize struct {
 
 func (s *authorize) Authorization(req *osin.AuthorizeRequest) (*osin.AuthorizeData, error) {
 	fmt.Printf("start authorize validate:")
-	if err := s.convertToValidate(req).Validate(); err != nil {
+	if err := s.requestValidate(req).Validate(); err != nil {
 		return nil, err
 	}
 
@@ -39,7 +39,7 @@ func (s *authorize) Authorization(req *osin.AuthorizeRequest) (*osin.AuthorizeDa
 	return ad, nil
 }
 
-func (s *authorize) convertToValidate(req *osin.AuthorizeRequest) ValidateRequest {
+func (s *authorize) requestValidate(req *osin.AuthorizeRequest) ValidateRequest {
 	return &authorizeRequestValidate{
 		server: s.Server,
 		req:    req,
