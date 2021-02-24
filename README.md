@@ -1,6 +1,8 @@
 # osin-simple
 Golang OAuth2 server library
 
+本代码库主要解决开源oauth2 server 库(https://github.com/openshift/osin)过分依赖net/http的问题，由于在至少我的项目中一般来说是不会直接使用net/http的，假如我们依赖于fiber或者gin这种web框架，那么原先的osin库就不太合适了，它过分紧密的与net/http关联在了一起，不方便与其他web框架集成，所以我在osin的基础上进行了剥离，便于与其他web框架集成。
+
 JWT生成tokan的例子代码：
 ```
 package main
