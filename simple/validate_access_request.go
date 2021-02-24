@@ -91,7 +91,6 @@ func (val *accessRequestValidate) refreshTokenValidate() error {
 	}
 
 	// must be a valid refresh code
-	fmt.Printf("\nrefresh code: %s\n", val.req.Code)
 	val.req.AccessData, err = val.server.Storage.LoadRefresh(val.req.Code)
 	if err != nil {
 		return fmt.Errorf("error loading access data by refresh code.")

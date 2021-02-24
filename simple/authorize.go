@@ -21,12 +21,10 @@ type authorize struct {
 }
 
 func (s *authorize) Authorization(req *osin.AuthorizeRequest) (*osin.AuthorizeData, error) {
-	fmt.Printf("start authorize validate:")
 	if err := s.requestValidate(req).Validate(); err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("finish authorize request.\n")
 	// HANDLE LOGIN PAGE HERE
 	// ctx.Redirect(ToLoginPage())
 

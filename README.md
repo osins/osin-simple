@@ -29,13 +29,10 @@ var (
 )
 
 func LoadEnv() {
-	fmt.Printf("init env start. path: %s\n", ENVFile)
 	err := godotenv.Load(ENVFile)
 	if err != nil {
 		fmt.Printf("Error loading .env file: " + err.Error())
 	}
-
-	fmt.Printf("init env complete.")
 }
 
 type User struct {

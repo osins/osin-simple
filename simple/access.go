@@ -34,6 +34,10 @@ func (acc *simpleAccess) Access(req *osin.AccessRequest) (*AccessResponseData, e
 
 	req.Authorized = true
 
+	if req.Type == osin.PASSWORD && acc.Server.UserStorage != nil {
+		req.UserData, _ = acc.Server.UserStorage.GetUser(val.userId)
+	}
+
 	var ad *osin.AccessData
 	ad, err = acc.GenAccessData(req)
 	if err != nil {
