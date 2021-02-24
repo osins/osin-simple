@@ -42,11 +42,6 @@ func (acc *simpleAccess) Access(req *osin.AccessRequest) (*AccessResponseData, e
 }
 
 func (acc *simpleAccess) GenAccessData(req *osin.AccessRequest) (*osin.AccessData, error) {
-	s := acc.Server
-	if !req.Authorized {
-		return nil, fmt.Errorf("authorization failed")
-	}
-
 	var err error
 
 	// generate access token
@@ -57,12 +52,12 @@ func (acc *simpleAccess) GenAccessData(req *osin.AccessRequest) (*osin.AccessDat
 		RedirectUri:   req.RedirectUri,
 		UserData:      req.UserData,
 		Scope:         req.Scope,
-		ExpiresIn:     s.Config.AccessExpiration,
-		CreatedAt:     s.Now(),
+		ExpiresIn:     acc.Server.Config.AccessExpiration,
+		CreatedAt:     acc.Server.Now(),
 	}
 
 	// generate access token
-	ret.AccessToken, ret.RefreshToken, err = s.AccessTokenGen.GenerateAccessToken(ret, req.GenerateRefresh)
+	ret.AccessToken, ret.RefreshToken, err = acc.Server.AccessTokenGen.GenerateAccessToken(ret, true)
 	if err != nil {
 		return nil, fmt.Errorf("error generating token")
 	}
@@ -72,7 +67,7 @@ func (acc *simpleAccess) GenAccessData(req *osin.AccessRequest) (*osin.AccessDat
 	}
 
 	// save access token
-	if err = s.Storage.SaveAccess(ret); err != nil {
+	if err = acc.Server.Storage.SaveAccess(ret); err != nil {
 		return nil, fmt.Errorf("error saving access token")
 	}
 
@@ -84,17 +79,17 @@ func (acc *simpleAccess) GenAccessData(req *osin.AccessRequest) (*osin.AccessDat
 func (acc *simpleAccess) removeOldData(old *osin.AccessRequest, new *osin.AccessData) {
 	s := acc.Server
 	// remove authorization token
-	if old.AuthorizeData != nil {
+	if old.AuthorizeData != nil && len(old.AuthorizeData.Code) > 0 {
 		s.Storage.RemoveAuthorize(old.AuthorizeData.Code)
 	}
 
 	// remove previous access token
 	if old.AccessData != nil && !s.Config.RetainTokenAfterRefresh {
-		if old.AccessData.RefreshToken != new.RefreshToken {
+		if old.AccessData.RefreshToken != new.RefreshToken && len(old.AccessData.RefreshToken) > 0 {
 			s.Storage.RemoveRefresh(old.AccessData.RefreshToken)
 		}
 
-		if old.AccessData.AccessToken != new.AccessToken {
+		if old.AccessData.AccessToken != new.AccessToken && len(old.AccessData.AccessToken) > 0 {
 			s.Storage.RemoveAccess(old.AccessData.AccessToken)
 		}
 	}

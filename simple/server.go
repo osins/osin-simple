@@ -28,7 +28,7 @@ func NewServerConfig() *SimpleConfig {
 }
 
 // NewServer creates a new server instance
-func NewSimpleServer(config *SimpleConfig, storage osin.Storage) *SimpleServer {
+func NewSimpleServer(config *SimpleConfig) *SimpleServer {
 	if config.AuthorizeTokenGen == nil {
 		config.AuthorizeTokenGen = &osin.AuthorizeTokenGenDefault{}
 	}
@@ -43,7 +43,7 @@ func NewSimpleServer(config *SimpleConfig, storage osin.Storage) *SimpleServer {
 
 	return &SimpleServer{
 		Config:            config.ServerConfig,
-		Storage:           storage,
+		Storage:           config.Storage,
 		AuthorizeTokenGen: config.AuthorizeTokenGen,
 		AccessTokenGen:    config.AccessTokenGen,
 		Now:               time.Now,
@@ -57,13 +57,13 @@ type SimpleServer struct {
 	Storage           osin.Storage
 	AuthorizeTokenGen osin.AuthorizeTokenGen
 	AccessTokenGen    osin.AccessTokenGen
-	Access            SimpleAccess
 	Now               func() time.Time
 	Logger            osin.Logger
 }
 
 type SimpleConfig struct {
 	*osin.ServerConfig
+	Storage           osin.Storage
 	AuthorizeTokenGen osin.AuthorizeTokenGen
 	AccessTokenGen    osin.AccessTokenGen
 	Logger            osin.Logger
