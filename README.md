@@ -19,8 +19,9 @@ conf.AllowClientSecretInParams = true
 conf.AccessExpiration = 1000000
 conf.AllowedAccessTypes = osin.AllowedAccessType{osin.AUTHORIZATION_CODE, osin.REFRESH_TOKEN}
 conf.AccessTokenGen = &accessTokenGenJWT
+conf.Storage = storage
 
-server := simple.NewSimpleServer(conf, storage)
+server := simple.NewSimpleServer(conf)
 
 app := fiber.New()
 
