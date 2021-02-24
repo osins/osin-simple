@@ -121,14 +121,13 @@ func main() {
 	}
 
 	storage := pg.New()
-
-	// ex.NewTestStorage implements the "osin.Storage" interface
+	
 	conf := simple.NewServerConfig()
+	conf.Storage = storage
 	conf.AllowClientSecretInParams = true
 	conf.AccessExpiration = 1000000
 	conf.AllowedAccessTypes = osin.AllowedAccessType{osin.AUTHORIZATION_CODE, osin.REFRESH_TOKEN, osin.PASSWORD}
 	conf.AccessTokenGen = &accessTokenGenJWT
-	conf.Storage = storage
 	conf.ValidateUser = pg.NewValidateUser()
 
 	server := simple.NewSimpleServer(conf)
