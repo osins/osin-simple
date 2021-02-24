@@ -178,7 +178,7 @@ func main() {
 			GenerateRefresh: true,
 			Expiration:      server.Config.AccessExpiration,
 		}
-		fmt.Println("grant type:" + req.Type)
+		
 		if ctx.FormValue("refresh_token") != "" {
 			req.AccessData = &osin.AccessData{
 				RefreshToken: ctx.FormValue("refresh_token"),
