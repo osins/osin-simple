@@ -84,32 +84,29 @@ func (val *accessRequestValidate) refreshTokenValidate() error {
 		return fmt.Errorf("refresh_token is required")
 	}
 
-	// must have a valid client
-	client, err := val.server.Storage.GetClient(val.req.Client.GetId())
-	if err != nil || client == nil || client.GetId() != val.req.Client.GetId() {
-		return fmt.Errorf("client valid faild.")
-	}
-
 	// must be a valid refresh code
-	val.req.AccessData, err = val.server.Storage.LoadRefresh(val.req.Code)
+	ad, err := val.server.Storage.LoadRefresh(val.req.Code)
 	if err != nil {
 		return fmt.Errorf("error loading access data by refresh code.")
 	}
 
-	if val.req.AccessData == nil {
+	if ad == nil {
 		return fmt.Errorf("access data is nil")
 	}
 
 	// client must be the same as the previous token
-	if val.req.AccessData.Client.GetId() != val.req.Client.GetId() {
+	if len(ad.Client.GetId()) == 0 {
 		return fmt.Errorf("Client id must be the same from previous token")
 	}
 
+	val.req.AccessData = ad
+	val.req.Client = ad.Client
+
 	// set rest of data
-	val.req.RedirectUri = val.req.AccessData.Client.GetRedirectUri()
-	val.req.UserData = val.req.AccessData.UserData
+	val.req.RedirectUri = ad.Client.GetRedirectUri()
+	val.req.UserData = ad.UserData
 	if val.req.Scope == "" {
-		val.req.Scope = val.req.AccessData.Scope
+		val.req.Scope = ad.Scope
 	}
 
 	if val.extraScopes(val.req.AccessData.Scope, val.req.Scope) {
