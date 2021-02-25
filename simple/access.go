@@ -6,22 +6,22 @@ import (
 	"github.com/openshift/osin"
 )
 
-func NewAccess(s *SimpleServer) SimpleAccess {
-	return &simpleAccess{
+func NewAccess(s *SimpleServer) Access {
+	return &access{
 		Server: s,
 	}
 }
 
-type SimpleAccess interface {
+type Access interface {
 	Access(req *osin.AccessRequest) (*AccessResponseData, error)
 	GenAccessData(req *osin.AccessRequest) (*osin.AccessData, error)
 }
 
-type simpleAccess struct {
+type access struct {
 	Server *SimpleServer
 }
 
-func (acc *simpleAccess) Access(req *osin.AccessRequest) (*AccessResponseData, error) {
+func (acc *access) Access(req *osin.AccessRequest) (*AccessResponseData, error) {
 	val := &accessRequestValidate{
 		server: acc.Server,
 		req:    req,
@@ -57,7 +57,7 @@ func (acc *simpleAccess) Access(req *osin.AccessRequest) (*AccessResponseData, e
 	}, nil
 }
 
-func (acc *simpleAccess) GenAccessData(req *osin.AccessRequest) (*osin.AccessData, error) {
+func (acc *access) GenAccessData(req *osin.AccessRequest) (*osin.AccessData, error) {
 	var err error
 
 	// generate access token
@@ -92,7 +92,7 @@ func (acc *simpleAccess) GenAccessData(req *osin.AccessRequest) (*osin.AccessDat
 	return ret, nil
 }
 
-func (acc *simpleAccess) removeOldData(old *osin.AccessRequest, new *osin.AccessData) {
+func (acc *access) removeOldData(old *osin.AccessRequest, new *osin.AccessData) {
 	s := acc.Server
 	// remove authorization token
 	if old.AuthorizeData != nil && len(old.AuthorizeData.Code) > 0 {
