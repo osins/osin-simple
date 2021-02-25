@@ -36,10 +36,6 @@ func (val *infoRequestValidate) Validate() error {
 		return fmt.Errorf("access data client is nil")
 	}
 
-	if val.req.AccessData.Client.GetRedirectUri() == "" {
-		return fmt.Errorf("access data client redirect uri is empty")
-	}
-
 	if val.req.AccessData.IsExpiredAt(val.server.Now()) {
 		return fmt.Errorf("access data is expired")
 	}

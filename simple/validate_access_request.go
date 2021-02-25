@@ -57,16 +57,16 @@ func (val *accessRequestValidate) authorizeValidate() error {
 		return fmt.Errorf("authorization data is nil")
 	}
 
-	if ad.Client == nil {
-		return fmt.Errorf("authorization client is nil")
+	if len(ad.Client.GetId()) == 0 {
+		return fmt.Errorf("authorization client id is nil")
 	}
 
-	if ad.Client.GetRedirectUri() != val.req.RedirectUri {
+	if len(ad.Client.GetSecret()) == 0 {
+		return fmt.Errorf("authorization secret is nil")
+	}
+
+	if len(ad.Client.GetRedirectUri()) == 0 {
 		return fmt.Errorf("client redirect uri is error")
-	}
-
-	if client, err := val.server.Storage.GetClient(val.req.Client.GetId()); err != nil || client == nil || client.GetId() != val.req.Client.GetId() {
-		return fmt.Errorf("client is error.")
 	}
 
 	if ad.IsExpiredAt(val.server.Now()) {
@@ -98,10 +98,6 @@ func (val *accessRequestValidate) refreshTokenValidate() error {
 
 	if val.req.AccessData == nil {
 		return fmt.Errorf("access data is nil")
-	}
-
-	if val.req.AccessData.Client.GetRedirectUri() == "" {
-		return fmt.Errorf("access data client redirect uri is empty")
 	}
 
 	// client must be the same as the previous token

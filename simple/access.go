@@ -52,8 +52,7 @@ func (acc *access) Access(req *osin.AccessRequest) (*AccessResponseData, error) 
 		AccessToken:  ad.AccessToken,
 		RefreshToken: ad.RefreshToken,
 		ExpiresIn:    ad.ExpiresIn,
-		Scope:        ad.Scope,
-		UserData:     ad.UserData,
+		TokenType:    acc.Server.Config.TokenType,
 	}, nil
 }
 

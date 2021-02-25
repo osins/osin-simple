@@ -40,7 +40,7 @@ func (s *info) get(req *osin.InfoRequest) (*AccessResponseData, error) {
 		AccessToken:  ad.AccessToken,
 		RefreshToken: ad.RefreshToken,
 		ExpiresIn:    ad.ExpiresIn,
-		Scope:        ad.Scope,
-		UserData:     ad.UserData,
+		TokenType:    s.Server.Config.TokenType,
+		Raw:          ad.UserData,
 	}, err
 }
