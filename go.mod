@@ -1,4 +1,4 @@
-module github.com/wangsying/osin-simple
+module github.com/osins/osin-simple
 
 go 1.15
 

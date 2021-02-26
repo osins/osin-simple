@@ -18,8 +18,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/openshift/osin"
-	"github.com/wangsying/osin-simple/simple"
-	"github.com/wangsying/osin-storage/storage/pg"
+	"github.com/osins/osin-simple/simple"
+	"github.com/osins/osin-storage/storage/pg"
 )
 
 var (
