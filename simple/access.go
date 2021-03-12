@@ -3,109 +3,113 @@ package simple
 import (
 	"fmt"
 
-	"github.com/openshift/osin"
+	"github.com/osins/osin-simple/simple/config"
+	"github.com/osins/osin-simple/simple/model/entity"
+	"github.com/osins/osin-simple/simple/request"
+	"github.com/osins/osin-simple/simple/response"
+	"github.com/osins/osin-simple/simple/validate"
 )
 
 func NewAccess(s *SimpleServer) Access {
 	return &access{
-		Server: s,
+		Conf: s.Config,
 	}
 }
 
 type Access interface {
-	Access(req *osin.AccessRequest) (*AccessResponseData, error)
-	GenAccessData(req *osin.AccessRequest) (*osin.AccessData, error)
+	Access(req *request.AccessRequest) (*response.AccessResponse, error)
 }
 
 type access struct {
-	Server *SimpleServer
+	Conf *config.SimpleConfig
 }
 
-func (acc *access) Access(req *osin.AccessRequest) (*AccessResponseData, error) {
-	val := &accessRequestValidate{
-		server: acc.Server,
-		req:    req,
+func (acc *access) Access(req *request.AccessRequest) (res *response.AccessResponse, err error) {
+	val := &validate.AccessRequestValidate{
+		Conf: acc.Conf,
+		Req:  req,
+		Res:  &response.AccessResponse{},
 	}
 
-	var err error
 	if err = val.Validate(); err != nil {
-		return nil, fmt.Errorf("access type(%s), error: %s", req.Type, err.Error())
+		return nil, fmt.Errorf("access type(%s), error: %s", req.GrantType, err.Error())
 	}
 
-	req.Authorized = true
-
-	if req.Type == osin.PASSWORD && acc.Server.UserStorage != nil {
-		req.UserData, _ = acc.Server.UserStorage.GetUser(val.userId)
-	}
-
-	var ad *osin.AccessData
-	ad, err = acc.GenAccessData(req)
+	err = acc.createAccessData(val)
 	if err != nil {
 		return nil, err
 	}
 
-	if req.Type == osin.PASSWORD && acc.Server.UserStorage != nil {
-		acc.Server.UserStorage.BindToken(ad.AccessToken, val.userId)
-	}
-
-	return &AccessResponseData{
-		AccessToken:  ad.AccessToken,
-		RefreshToken: ad.RefreshToken,
-		ExpiresIn:    ad.ExpiresIn,
-		TokenType:    acc.Server.Config.TokenType,
-	}, nil
+	return val.Res, nil
 }
 
-func (acc *access) GenAccessData(req *osin.AccessRequest) (*osin.AccessData, error) {
-	var err error
-
-	// generate access token
-	ret := &osin.AccessData{
-		Client:        req.Client,
-		AuthorizeData: req.AuthorizeData,
-		AccessData:    req.AccessData,
-		RedirectUri:   req.RedirectUri,
-		UserData:      req.UserData,
-		Scope:         req.Scope,
-		ExpiresIn:     acc.Server.Config.AccessExpiration,
-		CreatedAt:     acc.Server.Now(),
+func (acc *access) createAccessData(val *validate.AccessRequestValidate) (err error) {
+	if val.Res == nil {
+		val.Res = &response.AccessResponse{}
 	}
 
+	data := &entity.Access{}
+	data.Client = val.Client
+	data.User = val.User
+	data.ExpiresIn = val.Req.Expiration
+	data.Scope = val.Req.Scope
+	data.ClientId = val.Client.GetId()
+	data.UserId = val.User.GetId()
+	data.CreatedAt = acc.Conf.Now()
+
 	// generate access token
-	ret.AccessToken, ret.RefreshToken, err = acc.Server.AccessTokenGen.GenerateAccessToken(ret, true)
+	data.AccessToken, data.RefreshToken, err = acc.Conf.AccessToken.GenerateAccessToken(data, val.Client.GetNeedRefresh())
 	if err != nil {
-		return nil, fmt.Errorf("error generating token")
+		return fmt.Errorf("error generating token: %s", err.Error())
 	}
 
-	if req.AccessData != nil && ret.AccessToken == req.AccessData.AccessToken {
-		return ret, nil
-	}
+	val.Res.AccessToken = data.AccessToken
+	val.Res.RefreshToken = data.RefreshToken
+	val.Res.ExpiresIn = acc.Conf.AccessExpiration
 
 	// save access token
-	if err = acc.Server.Storage.SaveAccess(ret); err != nil {
-		return nil, fmt.Errorf("error saving access token")
+	if err = acc.Conf.Storage.Access.Create(data); err != nil {
+		return fmt.Errorf("error saving access token: %s", err.Error())
 	}
 
-	acc.removeOldData(req, ret)
+	if val.Req.GrantType == request.ACCESS_GRANT_PASSWORD && acc.Conf.Storage.User != nil {
+		if err := acc.Conf.Storage.Access.BindUser(data.AccessToken, data.UserId); err != nil {
+			return err
+		}
+	}
 
-	return ret, nil
+	if err := acc.removeOldData(val); err != nil {
+		return fmt.Errorf("remove old access token or refresh token error: %s", err.Error())
+	}
+
+	return nil
 }
 
-func (acc *access) removeOldData(old *osin.AccessRequest, new *osin.AccessData) {
-	s := acc.Server
-	// remove authorization token
-	if old.AuthorizeData != nil && len(old.AuthorizeData.Code) > 0 {
-		s.Storage.RemoveAuthorize(old.AuthorizeData.Code)
-	}
-
-	// remove previous access token
-	if old.AccessData != nil && !s.Config.RetainTokenAfterRefresh {
-		if old.AccessData.RefreshToken != new.RefreshToken && len(old.AccessData.RefreshToken) > 0 {
-			s.Storage.RemoveRefresh(old.AccessData.RefreshToken)
+func (acc *access) removeOldData(val *validate.AccessRequestValidate) error {
+	switch val.Req.GrantType {
+	case request.ACCESS_GRANT_AUTHORIZATION_CODE:
+		if err := acc.Conf.Storage.Access.RemoveAuthorize(val.Req.Code); err != nil {
+			return err
 		}
 
-		if old.AccessData.AccessToken != new.AccessToken && len(old.AccessData.AccessToken) > 0 {
-			s.Storage.RemoveAccess(old.AccessData.AccessToken)
+		return nil
+	case request.ACCESS_GRANT_REFRESH_TOKEN:
+		if len(val.Req.Code) > 0 && val.Req.Code != val.Res.RefreshToken {
+			if err := acc.Conf.Storage.Access.RemoveRefresh(val.Req.Code); err != nil {
+				return err
+			}
 		}
+
+		return nil
+	case request.ACCESS_GRANT_PASSWORD:
+		if len(val.Req.Code) > 0 {
+			if err := acc.Conf.Storage.Access.RemoveAuthorize(val.Req.Code); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
+
+	return nil
 }

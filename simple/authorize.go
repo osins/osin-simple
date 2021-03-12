@@ -3,115 +3,148 @@ package simple
 import (
 	"fmt"
 
-	"github.com/openshift/osin"
+	"github.com/osins/osin-simple/simple/config"
+	"github.com/osins/osin-simple/simple/model/entity"
+	"github.com/osins/osin-simple/simple/request"
+	"github.com/osins/osin-simple/simple/response"
+	"github.com/osins/osin-simple/simple/validate"
 )
 
 func NewAuthorize(s *SimpleServer) Authorize {
 	return &authorize{
-		Server: s,
+		Conf: s.Config,
 	}
 }
 
 type Authorize interface {
-	Authorization(req *osin.AuthorizeRequest) (*osin.AuthorizeData, error)
+	Login(req *request.AuthorizeRequest, loginFunc func() error) (*response.AuthorizeResponse, error)
+	Authorization(req *request.AuthorizeRequest) (*response.AuthorizeResponse, error)
 }
 
 type authorize struct {
-	Server *SimpleServer
+	Conf *config.SimpleConfig
 }
 
-func (s *authorize) Authorization(req *osin.AuthorizeRequest) (*osin.AuthorizeData, error) {
-	if err := s.requestValidate(req).Validate(); err != nil {
+func (s *authorize) Login(req *request.AuthorizeRequest, loginFunc func() error) (res *response.AuthorizeResponse, err error) {
+	val := &validate.AuthorizeRequestValidate{
+		Conf: s.Conf,
+		Req:  req,
+		Res:  &response.AuthorizeResponse{},
+	}
+
+	if err := val.Validate(); err != nil {
 		return nil, err
 	}
 
-	// HANDLE LOGIN PAGE HERE
-	// ctx.Redirect(ToLoginPage())
+	s.Conf.Logger.Info("authorize response type: %v, client need login: %v", request.AUTHORIZE_RESPONSE_CODE, val.Client.GetNeedLogin())
 
-	req.Authorized = true
-	ad, err := s.genAuthorizeData(req)
+	if req.ResponseType == request.AUTHORIZE_RESPONSE_CODE && val.Client.GetNeedLogin() {
+		if loginFunc == nil {
+			return nil, fmt.Errorf("please set login page func.")
+		}
+
+		if err := loginFunc(); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+	err = s.createAuthorize(val)
 	if err != nil {
 		return nil, err
 	}
 
-	return ad, nil
+	if req.ResponseType == request.AUTHORIZE_RESPONSE_LOGIN && val.Client.GetNeedLogin() {
+		if err := s.bindUserToCode(val); err != nil {
+			return nil, err
+		}
+	}
+
+	return val.Res, nil
 }
 
-func (s *authorize) requestValidate(req *osin.AuthorizeRequest) ValidateRequest {
-	return &authorizeRequestValidate{
-		server: s.Server,
-		req:    req,
+func (s *authorize) Authorization(req *request.AuthorizeRequest) (*response.AuthorizeResponse, error) {
+	val := &validate.AuthorizeRequestValidate{
+		Conf: s.Conf,
+		Req:  req,
+		Res:  &response.AuthorizeResponse{},
 	}
+
+	if err := val.Validate(); err != nil {
+		return nil, err
+	}
+
+	err := s.createAuthorize(val)
+	if err != nil {
+		return nil, err
+	}
+
+	return val.Res, nil
 }
 
-func (s *authorize) genAuthorizeData(req *osin.AuthorizeRequest) (*osin.AuthorizeData, error) {
-	if !req.Authorized {
-		return nil, fmt.Errorf("authorized is false.")
-	}
-
-	if req.Type == osin.TOKEN {
-		return s.tokenType(req)
-	}
-
-	return s.otherType(req)
-}
-
-func (s *authorize) tokenType(ar *osin.AuthorizeRequest) (*osin.AuthorizeData, error) {
-	// generate token directly
-	ret := &osin.AccessRequest{
-		Type:            osin.IMPLICIT,
-		Code:            "",
-		Client:          ar.Client,
-		RedirectUri:     ar.RedirectUri,
-		Scope:           ar.Scope,
-		GenerateRefresh: false, // per the RFC, should NOT generate a refresh token in this case
-		Authorized:      true,
-		Expiration:      ar.Expiration,
-		UserData:        ar.UserData,
-	}
-
-	NewAccess(s.Server).GenAccessData(ret)
-
-	return &osin.AuthorizeData{
-		Code:                ret.Code,
-		Client:              ar.Client,
-		RedirectUri:         ar.RedirectUri,
-		Scope:               ar.Scope,
-		ExpiresIn:           ar.Expiration,
-		UserData:            ar.UserData,
-		State:               ar.State,
-		CodeChallenge:       ar.CodeChallenge,
-		CodeChallengeMethod: ar.CodeChallengeMethod,
-	}, nil
-}
-
-func (s *authorize) otherType(ar *osin.AuthorizeRequest) (*osin.AuthorizeData, error) {
-	// generate authorization token
-	ret := &osin.AuthorizeData{
-		Client:      ar.Client,
-		CreatedAt:   s.Server.Now(),
-		ExpiresIn:   ar.Expiration,
-		RedirectUri: ar.RedirectUri,
-		State:       ar.State,
-		Scope:       ar.Scope,
-		UserData:    ar.UserData,
-		// Optional PKCE challenge
-		CodeChallenge:       ar.CodeChallenge,
-		CodeChallengeMethod: ar.CodeChallengeMethod,
-	}
-
+func (s *authorize) createAuthorize(val *validate.AuthorizeRequestValidate) (err error) {
 	// generate token code
-	code, err := s.Server.AuthorizeTokenGen.GenerateAuthorizeToken(ret)
+	val.Res.Code, err = s.Conf.AuthorizeCode.GenerateCode(val.Req)
 	if err != nil {
-		return nil, fmt.Errorf(osin.E_SERVER_ERROR)
+		return fmt.Errorf("generate authorize code error: %s", err)
 	}
 
-	ret.Code = code
+	val.Res.ExpiresIn = s.Conf.AuthorizationExpiration
+	val.Res.RedirectUri = val.Req.RedirectUri
+	val.Res.Scope = val.Req.Scope
+	val.Res.State = val.Req.State
+
+	data := &entity.Authorize{}
+	data.ExpiresIn = s.Conf.AccessExpiration
+	data.RedirectUri = val.Req.RedirectUri
+	data.Scope = val.Req.Scope
+	data.Code = val.Res.Code
+	data.ClientId = val.Req.ClientId
+	data.Client = val.Client
+	data.CodeChallenge = val.Req.CodeChallenge
+	data.CodeChallengeMethod = val.Req.CodeChallengeMethod
+	data.CreatedAt = val.Conf.Now()
+	data.State = val.Req.State
+
+	if val.Client.GetNeedLogin() {
+		data.UserId = val.User.GetId()
+		data.User = val.User
+	}
 
 	// save authorization token
-	if err = s.Server.Storage.SaveAuthorize(ret); err != nil {
-		return nil, fmt.Errorf(osin.E_SERVER_ERROR)
+	if err = s.Conf.Storage.Authorize.Create(data); err != nil {
+		return fmt.Errorf("%s %s", config.ERROR_AUTHORIZE_CREATE_ERROR, err)
 	}
 
-	return ret, nil
+	return err
+}
+
+// Login 登录入口
+func (s *authorize) bindUserToCode(val *validate.AuthorizeRequestValidate) (err error) {
+	if val.Client == nil {
+		return fmt.Errorf("client not exists.")
+	}
+
+	if !val.Client.GetNeedLogin() {
+		return nil
+	}
+
+	if len(val.Req.Username) == 0 || len(val.Req.Password) == 0 {
+		return fmt.Errorf("username or password is null.")
+	}
+
+	if val.User == nil || len(val.User.GetId()) == 0 {
+		return fmt.Errorf("user storage not bind or user not exists.")
+	}
+
+	if len(val.Res.Code) == 0 {
+		return fmt.Errorf("code error.")
+	}
+
+	if err := s.Conf.Storage.Authorize.BindUser(val.Res.Code, val.User.GetId()); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -1,24 +1,27 @@
 package simple
 
 import (
-	"github.com/openshift/osin"
+	"github.com/osins/osin-simple/simple/config"
+	"github.com/osins/osin-simple/simple/request"
+	"github.com/osins/osin-simple/simple/response"
+	"github.com/osins/osin-simple/simple/validate"
 )
 
 func NewInfo(s *SimpleServer) Info {
 	return &info{
-		Server: s,
+		Conf: s.Config,
 	}
 }
 
 type Info interface {
-	Info(req *osin.InfoRequest) (*AccessResponseData, error)
+	Info(req *request.InfoRequest) (*response.AccessResponse, error)
 }
 
 type info struct {
-	Server *SimpleServer
+	Conf *config.SimpleConfig
 }
 
-func (s *info) Info(req *osin.InfoRequest) (*AccessResponseData, error) {
+func (s *info) Info(req *request.InfoRequest) (*response.AccessResponse, error) {
 	if err := s.requestValidate(req).Validate(); err != nil {
 		return nil, err
 	}
@@ -26,21 +29,20 @@ func (s *info) Info(req *osin.InfoRequest) (*AccessResponseData, error) {
 	return s.get(req)
 }
 
-func (s *info) requestValidate(req *osin.InfoRequest) ValidateRequest {
-	return &infoRequestValidate{
-		server: s.Server,
-		req:    req,
+func (s *info) requestValidate(req *request.InfoRequest) validate.ValidateRequest {
+	return &validate.InfoRequestValidate{
+		Conf: s.Conf,
+		Req:  req,
 	}
 }
 
-func (s *info) get(req *osin.InfoRequest) (*AccessResponseData, error) {
-	ad, err := s.Server.Storage.LoadAccess(req.Code)
+func (s *info) get(req *request.InfoRequest) (*response.AccessResponse, error) {
+	acc, err := s.Conf.Storage.Access.Get(req.Code)
 
-	return &AccessResponseData{
-		AccessToken:  ad.AccessToken,
-		RefreshToken: ad.RefreshToken,
-		ExpiresIn:    ad.ExpiresIn,
-		TokenType:    s.Server.Config.TokenType,
-		Raw:          ad.UserData,
+	return &response.AccessResponse{
+		AccessToken:  acc.GetAccessToken(),
+		RefreshToken: acc.GetRefreshToken(),
+		ExpiresIn:    acc.GetExpiresIn(),
+		User:         acc.GetUser(),
 	}, err
 }
