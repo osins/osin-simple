@@ -1,10 +1,7 @@
 package entity
 
 import (
-	"encoding/json"
 	"time"
-
-	"github.com/fatih/structs"
 )
 
 // Client define
@@ -48,19 +45,5 @@ func (d *Client) GetNeedRefresh() bool {
 // Implement the ClientSecretMatcher interface
 // ClientSecretMatches method define
 func (d *Client) ClientSecretMatches(secret string) bool {
-
 	return d.Secret == secret
-}
-
-func (d *Client) MarshalJSON() ([]byte, error) {
-	m := structs.Map(d)
-	return json.Marshal(m)
-}
-
-func (d *Client) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, d); err != nil {
-		return err
-	}
-
-	return nil
 }

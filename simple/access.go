@@ -40,6 +40,8 @@ func (acc *access) Access(req *request.AccessRequest) (res *response.AccessRespo
 		return nil, err
 	}
 
+	val.Res.User = val.User
+
 	return val.Res, nil
 }
 
@@ -50,12 +52,19 @@ func (acc *access) createAccessData(val *validate.AccessRequestValidate) (err er
 
 	data := &entity.Access{}
 	data.Client = val.Client
-	data.User = val.User
 	data.ExpiresIn = val.Req.Expiration
 	data.Scope = val.Req.Scope
 	data.ClientId = val.Client.GetId()
-	data.UserId = val.User.GetId()
 	data.CreatedAt = acc.Conf.Now()
+
+	if val.User != nil {
+		val.Conf.Logger.Info("create access data\nuser: %v\nclient: %v", val.User, val.Client)
+		data.User = val.User
+		data.UserId = val.User.GetId()
+	} else if data.Client.GetNeedLogin() {
+		val.Conf.Logger.Error("create access data error, user not exists: %v", val)
+		return fmt.Errorf("client user not exists.")
+	}
 
 	// generate access token
 	data.AccessToken, data.RefreshToken, err = acc.Conf.AccessToken.GenerateAccessToken(data, val.Client.GetNeedRefresh())

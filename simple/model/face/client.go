@@ -6,6 +6,4 @@ type Client interface {
 	GetRedirectUri() string
 	GetSecret() string
 	GetNeedRefresh() bool
-	MarshalJSON() ([]byte, error)
-	UnmarshalJSON(data []byte) error
 }

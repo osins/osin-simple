@@ -123,6 +123,7 @@ func (s *authorize) createAuthorize(val *validate.AuthorizeRequestValidate) (err
 // Login 登录入口
 func (s *authorize) bindUserToCode(val *validate.AuthorizeRequestValidate) (err error) {
 	if val.Client == nil {
+		val.Conf.Logger.Error("bind user to code error: %v", val)
 		return fmt.Errorf("client not exists.")
 	}
 

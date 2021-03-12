@@ -7,6 +7,7 @@ import (
 
 type AccessToken interface {
 	GenerateAccessToken(data Access, generaterefresh bool) (accesstoken string, refreshtoken string, err error)
+	VerifyToken(code string) (Access, error)
 }
 
 // AccessTokenGenDefault is the default authorization token generator
@@ -22,4 +23,8 @@ func (a *AccessTokenDefault) GenerateAccessToken(data Access, generaterefresh bo
 	}
 
 	return
+}
+
+func (a *AccessTokenDefault) VerifyToken(code string) (Access, error) {
+	return nil, nil
 }

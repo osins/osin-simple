@@ -11,5 +11,7 @@ type Access interface {
 	GetScope() string
 	GetCreatedAt() time.Time
 	GetDeletedAt() time.Time
+	IsExpired() bool
 	IsExpiredAt(t time.Time) bool
+	ExpireAt() time.Time
 }

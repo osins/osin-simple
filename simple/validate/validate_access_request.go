@@ -16,6 +16,7 @@ type AccessRequestValidate struct {
 	Req       *request.AccessRequest
 	Res       *response.AccessResponse
 	Authorize face.Authorize
+	Access    face.Access
 	Client    face.Client
 	User      face.User
 }
@@ -34,17 +35,22 @@ func (val *AccessRequestValidate) Validate() error {
 		if err := val.authorizeValidate(); err != nil {
 			return err
 		}
+
+		return nil
 	case request.ACCESS_GRANT_REFRESH_TOKEN:
 		if err := val.refreshTokenValidate(); err != nil {
+			val.Conf.Logger.Error("refresh token update error: %s", err)
 			return err
 		}
+
+		return nil
 	case request.ACCESS_GRANT_PASSWORD:
-		if err := val.authorizeValidate(); err != nil {
-			return err
-		}
 		if err := val.passwordValidate(); err != nil {
+			val.Conf.Logger.Error("access password validate error: %s", err)
 			return err
 		}
+
+		return nil
 		// case CLIENT_CREDENTIALS:
 		// 	return s.handleClientCredentialsRequest(w, r)
 		// case ASSERTION:
@@ -57,11 +63,16 @@ func (val *AccessRequestValidate) Validate() error {
 func (val *AccessRequestValidate) authorizeValidate() (err error) {
 	val.Authorize, err = val.Conf.Storage.Authorize.Get(val.Req.Code)
 	if err != nil {
+		val.Conf.Logger.Error("authorize storage get by code: %s, error: %v", val.Req.Code, val)
 		return err
 	}
 
 	if val.Authorize == nil {
 		return fmt.Errorf("authorization data is nil")
+	}
+
+	if val.Authorize.IsExpiredAt(val.Conf.Now()) {
+		return fmt.Errorf("authorization data is expired")
 	}
 
 	if len(val.Authorize.GetClient().GetId()) == 0 {
@@ -76,40 +87,40 @@ func (val *AccessRequestValidate) authorizeValidate() (err error) {
 		return fmt.Errorf("client redirect uri is error")
 	}
 
-	if val.Authorize.IsExpiredAt(val.Conf.Now()) {
-		return fmt.Errorf("authorization data is expired")
-	}
+	val.Client = val.Authorize.GetClient()
+	val.User = val.Authorize.GetUser()
 
 	return nil
 }
 
-func (val *AccessRequestValidate) refreshTokenValidate() error {
+func (val *AccessRequestValidate) refreshTokenValidate() (err error) {
 	// "refresh_token" is required
 	if val.Req.Code == "" {
 		return fmt.Errorf("refresh_token is required")
 	}
 
 	// must be a valid refresh code
-	ad, err := val.Conf.Storage.Access.GetByRefreshToken(val.Req.Code)
+	val.Access, err = val.Conf.Storage.Access.GetByRefreshToken(val.Req.Code)
 	if err != nil {
+		val.Conf.Logger.Error("access storage get by refresh token error: %s", err)
 		return fmt.Errorf("error loading access data by refresh code.")
 	}
 
-	if ad == nil {
+	if val.Access == nil {
 		return fmt.Errorf("access data is nil")
 	}
 
+	val.Conf.Logger.Info("refresh token validate, client id: %s, client: %v", val.Req.ClientId, val.Access.GetClient())
+
 	// client must be the same as the previous token
-	if len(ad.GetClient().GetId()) == 0 {
+	if len(val.Access.GetClient().GetId()) == 0 || val.Access.GetClient().GetId() != val.Req.ClientId {
 		return fmt.Errorf("Client id must be the same from previous token")
 	}
 
-	val.Authorize, err = val.Conf.Storage.Authorize.Get(val.Req.Code)
-	if err != nil {
-		return err
-	}
+	val.Client = val.Access.GetClient()
+	val.User = val.Access.GetUser()
 
-	if val.extraScopes(val.Authorize.GetScope(), val.Req.Scope) {
+	if val.extraScopes(val.Access.GetScope(), val.Req.Scope) {
 		return fmt.Errorf("the requested scope must not include any scope not originally granted by the resource owner")
 	}
 
@@ -127,8 +138,16 @@ func (val *AccessRequestValidate) passwordValidate() (err error) {
 	}
 
 	val.User, err = val.Conf.Storage.User.GetByPassword(val.Req.Username, val.Req.Password)
+	if err != nil {
+		return err
+	}
 
-	return err
+	val.Client, err = val.Conf.Storage.Client.Get(val.Req.ClientId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (val *AccessRequestValidate) extraScopes(access_scopes, refresh_scopes string) bool {

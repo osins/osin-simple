@@ -35,7 +35,7 @@ func (val *AuthorizeRequestValidate) Validate() error {
 	// must have a valid client
 	val.Client, err = val.Conf.Storage.Client.Get(val.Req.ClientId)
 	if err != nil {
-		return err
+		return fmt.Errorf("client id not exists, client id: %s", val.Req.ClientId)
 	}
 
 	if val.Client == nil {

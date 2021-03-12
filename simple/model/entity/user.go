@@ -2,13 +2,11 @@ package entity
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // User define
 type User struct {
-	Id uuid.UUID
+	Id string
 
 	Username string
 
@@ -23,24 +21,21 @@ type User struct {
 }
 
 func (s *User) GetId() string {
-	return s.Id.String()
+	return s.Id
 }
 
 func (s *User) GetUsername() string {
-	return s.Id.String()
+	return s.Username
 }
 
 func (s *User) GetPassword() string {
-	return s.Id.String()
+	return s.Password
 }
 
 func (s *User) GetMobile() string {
-	return s.Id.String()
+	return s.Mobile
 }
 
 func (s *User) GetEmail() string {
-	return s.Id.String()
-}
-func (s *User) GetCode() string {
-	return s.Id.String()
+	return s.EMail
 }

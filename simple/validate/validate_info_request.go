@@ -12,18 +12,19 @@ type InfoRequestValidate struct {
 	Conf   *config.SimpleConfig
 	Req    *request.InfoRequest
 	Access face.Access
+	Client face.Client
+	User   face.User
 }
 
-func (val *InfoRequestValidate) Validate() error {
+func (val *InfoRequestValidate) Validate() (err error) {
 	if val.Req.Code == "" {
 		return fmt.Errorf("bearer is nil")
 	}
 
-	if val.Req.Code == "" {
-		return fmt.Errorf("code is nil")
+	if _, err := val.Conf.AccessToken.VerifyToken(val.Req.Code); err != nil {
+		val.Conf.Logger.Error("verify token faild, code: %s, access: %v", val.Req.Code, val.Access)
+		return err
 	}
-
-	var err error
 
 	// load access data
 	val.Access, err = val.Conf.Storage.Access.Get(val.Req.Code)
@@ -35,12 +36,12 @@ func (val *InfoRequestValidate) Validate() error {
 		return fmt.Errorf("access data is nil")
 	}
 
-	if val.Access.GetClient() == nil {
-		return fmt.Errorf("access data client is nil")
-	}
-
 	if val.Access.IsExpiredAt(val.Conf.Now()) {
 		return fmt.Errorf("access data is expired")
+	}
+
+	if val.Access.GetClient() == nil {
+		return fmt.Errorf("access data client is nil")
 	}
 
 	return nil
