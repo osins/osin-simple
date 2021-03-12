@@ -1,6 +1,9 @@
 # osin-simple
 以openshift/osin为基础延伸、扩展，并重构后的OAuth2.0服务架构，完全接口形式，方便扩展。
 
+openshift/osin:<br>
+https://github.com/openshift/osin
+
 postgreSQL数据库：<br>
 https://github.com/osins/osin-storage
 
