@@ -6,4 +6,5 @@ type AuthorizeResponse struct {
 	Scope       string `json:"scope"`
 	ExpiresIn   int32  `json:"expires_in"`
 	RedirectUri string `json:"redirect_uri"`
+	NeedLogin   bool   `json:"need_login"`
 }

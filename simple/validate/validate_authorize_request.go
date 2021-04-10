@@ -92,7 +92,7 @@ func (val *AuthorizeRequestValidate) Validate() error {
 
 		val.User, err = val.Conf.Storage.User.GetByPassword(val.Req.Username, val.Req.Password)
 		if err != nil {
-			val.Conf.Logger.Error("codeChallenge error: %s", err)
+			val.Conf.Logger.Error("find user error, username: %s, password: %s, error: %s", val.Req.Username, val.Req.Password, err)
 			return err
 		}
 	}

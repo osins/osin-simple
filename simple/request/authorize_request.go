@@ -10,6 +10,8 @@ type AuthorizeRequest struct {
 	State        string
 	Username     string
 	Password     string
+	EMail        string
+	Mobile       string
 
 	// Optional code_challenge as described in rfc7636
 	CodeChallenge string

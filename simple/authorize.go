@@ -3,6 +3,7 @@ package simple
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/osins/osin-simple/simple/config"
 	"github.com/osins/osin-simple/simple/model/entity"
 	"github.com/osins/osin-simple/simple/request"
@@ -17,7 +18,8 @@ func NewAuthorize(s *SimpleServer) Authorize {
 }
 
 type Authorize interface {
-	Login(req *request.AuthorizeRequest, loginFunc func() error) (*response.AuthorizeResponse, error)
+	Login(req *request.AuthorizeRequest) (*response.AuthorizeResponse, error)
+	Register(req *request.AuthorizeRequest) (res *response.AuthorizeResponse, err error)
 	Authorization(req *request.AuthorizeRequest) (*response.AuthorizeResponse, error)
 }
 
@@ -25,7 +27,36 @@ type authorize struct {
 	Conf *config.SimpleConfig
 }
 
-func (s *authorize) Login(req *request.AuthorizeRequest, loginFunc func() error) (res *response.AuthorizeResponse, err error) {
+func (s *authorize) Login(req *request.AuthorizeRequest) (res *response.AuthorizeResponse, err error) {
+	val := &validate.AuthorizeRequestValidate{
+		Conf: s.Conf,
+		Req:  req,
+		Res:  &response.AuthorizeResponse{},
+	}
+
+	if err := val.Validate(); err != nil {
+		return nil, err
+	}
+
+	s.Conf.Logger.Info("authorize response type: %v, client need login: %v", request.AUTHORIZE_RESPONSE_CODE, val.Client.GetNeedLogin())
+	err = s.createAuthorize(val)
+	if err != nil {
+		return nil, err
+	}
+
+	if val.User == nil || val.User.GetId() == "" {
+		s.Conf.Logger.Error("user info is nil, user: %v", val.User)
+		return nil, fmt.Errorf("need user login.")
+	}
+
+	if err := s.bindUserToCode(val); err != nil {
+		return nil, err
+	}
+
+	return val.Res, nil
+}
+
+func (s *authorize) Register(req *request.AuthorizeRequest) (res *response.AuthorizeResponse, err error) {
 	val := &validate.AuthorizeRequestValidate{
 		Conf: s.Conf,
 		Req:  req,
@@ -38,16 +69,19 @@ func (s *authorize) Login(req *request.AuthorizeRequest, loginFunc func() error)
 
 	s.Conf.Logger.Info("authorize response type: %v, client need login: %v", request.AUTHORIZE_RESPONSE_CODE, val.Client.GetNeedLogin())
 
-	if req.ResponseType == request.AUTHORIZE_RESPONSE_CODE && val.Client.GetNeedLogin() {
-		if loginFunc == nil {
-			return nil, fmt.Errorf("please set login page func.")
+	if req.ResponseType == request.AUTHORIZE_RESPONSE_REGISTER {
+		val.User = &entity.User{
+			Id:       uuid.UUID(uuid.New()).String(),
+			Username: req.Username,
+			Password: req.Password,
+			EMail:    req.EMail,
+			Mobile:   req.Mobile,
 		}
 
-		if err := loginFunc(); err != nil {
+		if err := s.Conf.Storage.User.Create(val.User); err != nil {
+			s.Conf.Logger.Error("create user account error, user: %v", val.User)
 			return nil, err
 		}
-
-		return nil, nil
 	}
 
 	err = s.createAuthorize(val)
@@ -73,6 +107,12 @@ func (s *authorize) Authorization(req *request.AuthorizeRequest) (*response.Auth
 
 	if err := val.Validate(); err != nil {
 		return nil, err
+	}
+
+	if req.ResponseType == request.AUTHORIZE_RESPONSE_CODE && val.Client.GetNeedLogin() {
+		val.Res.NeedLogin = true
+
+		return val.Res, fmt.Errorf("client validate need user login.")
 	}
 
 	err := s.createAuthorize(val)

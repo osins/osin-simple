@@ -22,10 +22,11 @@ func NewServerConfig() *SimpleConfig {
 			request.ACCESS_GRANT_AUTHORIZATION_CODE,
 			request.ACCESS_GRANT_REFRESH_TOKEN,
 		},
-		ErrorStatusCode:           200,
-		AllowClientSecretInParams: false,
-		AllowGetAccessRequest:     false,
-		RetainTokenAfterRefresh:   false,
+		ErrorStatusCode:             200,
+		AllowClientSecretInParams:   false,
+		AllowGetAccessRequest:       false,
+		RetainTokenAfterRefresh:     false,
+		RequirePKCEForPublicClients: false,
 		Now: func() time.Time {
 			return time.Now()
 		},
