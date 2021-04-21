@@ -46,9 +46,9 @@ func (val *AuthorizeRequestValidate) Validate() error {
 		return fmt.Errorf("server client redirect uri is null.")
 	}
 
-	if val.Client.GetSecret() != val.Req.ClientSecret {
-		return fmt.Errorf("client secret error.")
-	}
+	// if val.Client.GetSecret() != val.Req.ClientSecret {
+	// 	return fmt.Errorf("client secret error.")
+	// }
 
 	// check redirect uri, if there are multiple client redirect uri's
 	// don't set the uri
