@@ -1,7 +1,6 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -55,52 +54,39 @@ func ParseUrls(baseUrl, redirectUrl string) (retBaseUrl, retRedirectUrl *url.URL
 // ValidateUriList validates that redirectUri is contained in baseUriList.
 // baseUriList may be a string separated by separator.
 // If separator is blank, validate only 1 URI.
-func ValidateUriList(baseUriList string, redirectUri string, separator string) (realRedirectUri string, err error) {
-	// make a list of uris
-	var slist []string
-	if separator != "" {
-		slist = strings.Split(baseUriList, separator)
-	} else {
-		slist = make([]string, 0)
-		slist = append(slist, baseUriList)
-	}
-
-	for _, sitem := range slist {
-		realRedirectUri, err = ValidateUri(sitem, redirectUri)
-		// validated, return no error
-		if err == nil {
-			return realRedirectUri, nil
-		}
-
-		// if there was an error that is not a validation error, return it
-		if _, iok := err.(UriValidationError); !iok {
-			return "", err
+func ValidateRedirectUriList(baseUriList string, redirectUri string, separator string) (realRedirectUri string, err error) {
+	uris := strings.Split(baseUriList, separator)
+	for _, s := range uris {
+		fmt.Printf("base: %v, redirect: %v", s, redirectUri)
+		if r, err := ValidateUri(s, redirectUri); err == nil {
+			return r, nil
 		}
 	}
 
-	return "", newUriValidationError("urls don't validate", baseUriList, redirectUri)
+	return "", fmt.Errorf("redirect uri error.")
 }
 
 // ValidateUri validates that redirectUri is contained in baseUri
 func ValidateUri(baseUri string, redirectUri string) (realRedirectUri string, err error) {
-	if baseUri == "" || redirectUri == "" {
-		return "", errors.New("urls cannot be blank.")
+	var base, redirect *url.URL
+	if base, err = url.Parse(baseUri); err != nil {
+		return "", fmt.Errorf("redirect url error")
 	}
 
-	base, redirect, err := ParseUrls(baseUri, redirectUri)
-	if err != nil {
-		return "", err
+	if redirect, err = url.Parse(redirectUri); err != nil {
+		return "", fmt.Errorf("redirect url error")
 	}
 
-	// allow exact path matches
-	if base.Path == redirect.Path {
-		return redirect.String(), nil
+	if base.Host != redirect.Host {
+		return "", fmt.Errorf("redirect url error")
 	}
 
-	// ensure prefix matches are actually subpaths
-	requiredPrefix := strings.TrimRight(base.Path, "/") + "/"
-	if !strings.HasPrefix(redirect.Path, requiredPrefix) {
-		return "", newUriValidationError("path prefix doesn't match", baseUri, redirectUri)
+	if base.Path != redirect.Path {
+		return "", fmt.Errorf("redirect url error")
+	}
+
+	if base.RawQuery != redirect.RawQuery {
+		return "", fmt.Errorf("redirect url error")
 	}
 
 	return redirect.String(), nil

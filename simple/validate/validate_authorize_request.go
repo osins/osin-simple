@@ -56,7 +56,7 @@ func (val *AuthorizeRequestValidate) Validate() error {
 		val.Res.RedirectUri = util.FirstUri(val.Req.RedirectUri, val.Conf.RedirectUriSeparator)
 	}
 
-	if realRedirectUri, err := util.ValidateUriList(val.Client.GetRedirectUri(), val.Req.RedirectUri, val.Conf.RedirectUriSeparator); err != nil {
+	if realRedirectUri, err := util.ValidateRedirectUriList(val.Client.GetRedirectUri(), val.Req.RedirectUri, val.Conf.RedirectUriSeparator); err != nil {
 		return fmt.Errorf("redirect validate uri list error.")
 	} else {
 		val.Res.RedirectUri = realRedirectUri
