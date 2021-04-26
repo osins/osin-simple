@@ -55,9 +55,13 @@ func ParseUrls(baseUrl, redirectUrl string) (retBaseUrl, retRedirectUrl *url.URL
 // baseUriList may be a string separated by separator.
 // If separator is blank, validate only 1 URI.
 func ValidateRedirectUriList(baseUriList string, redirectUri string, separator string) (realRedirectUri string, err error) {
+	if separator == "" {
+		return ValidateUri(baseUriList, redirectUri)
+	}
+
 	uris := strings.Split(baseUriList, separator)
 	for _, s := range uris {
-		fmt.Printf("base: %v, redirect: %v", s, redirectUri)
+		fmt.Printf("\nbase: %v, redirect: %v\n", s, redirectUri)
 		if r, err := ValidateUri(s, redirectUri); err == nil {
 			return r, nil
 		}
