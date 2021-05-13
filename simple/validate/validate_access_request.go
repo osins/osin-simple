@@ -113,16 +113,16 @@ func (val *AccessRequestValidate) refreshTokenValidate() (err error) {
 	val.Conf.Logger.Info("refresh token validate, client id: %s, client: %v", val.Req.ClientId, val.Access.GetClient())
 
 	// client must be the same as the previous token
-	if len(val.Access.GetClient().GetId()) == 0 || val.Access.GetClient().GetId() != val.Req.ClientId {
-		return fmt.Errorf("Client id must be the same from previous token")
-	}
+	// if len(val.Access.GetClient().GetId()) == 0 || val.Access.GetClient().GetId() != val.Req.ClientId {
+	// 	return fmt.Errorf("Client id must be the same from previous token")
+	// }
 
 	val.Client = val.Access.GetClient()
 	val.User = val.Access.GetUser()
 
-	if val.extraScopes(val.Access.GetScope(), val.Req.Scope) {
-		return fmt.Errorf("the requested scope must not include any scope not originally granted by the resource owner")
-	}
+	// if val.extraScopes(val.Access.GetScope(), val.Req.Scope) {
+	// 	return fmt.Errorf("the requested scope must not include any scope not originally granted by the resource owner")
+	// }
 
 	return nil
 }
