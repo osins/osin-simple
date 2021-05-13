@@ -2,6 +2,7 @@ package simple
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/google/uuid"
 	"github.com/osins/osin-simple/simple/config"
@@ -133,7 +134,26 @@ func (s *authorize) createAuthorize(val *validate.AuthorizeRequestValidate) (err
 	val.Res.ExpiresIn = s.Conf.AuthorizationExpiration
 	val.Res.RedirectUri = val.Req.RedirectUri
 	val.Res.Scope = val.Req.Scope
-	val.Res.State = val.Req.State
+
+	fmt.Printf("authorize handle complete.\n")
+
+	redirect, err := url.Parse(val.Res.RedirectUri)
+	if err != nil {
+		return fmt.Errorf("authorize handle error:%s\n", "parse query error")
+	}
+
+	values, err := url.ParseQuery(redirect.RawQuery)
+	if err != nil {
+		return fmt.Errorf("authorize handle error:%s\n", "parse query error")
+	}
+
+	values.Set("code", val.Res.Code)
+	redirect.RawQuery = values.Encode()
+
+	fmt.Printf("authorize handle return redirect:%s\n", values.Encode())
+	fmt.Printf("authorize handle return redirect:%s\n", redirect.String())
+
+	val.Res.RedirectUri = redirect.String()
 
 	data := &entity.Authorize{}
 	data.ExpiresIn = s.Conf.AccessExpiration
@@ -145,7 +165,6 @@ func (s *authorize) createAuthorize(val *validate.AuthorizeRequestValidate) (err
 	data.CodeChallenge = val.Req.CodeChallenge
 	data.CodeChallengeMethod = val.Req.CodeChallengeMethod
 	data.CreatedAt = val.Conf.Now()
-	data.State = val.Req.State
 
 	if val.Client.GetNeedLogin() {
 		data.UserId = val.User.GetId()

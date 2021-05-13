@@ -94,13 +94,15 @@ func ValidateUri(baseUri string, redirectUri string) (realRedirectUri string, er
 		return "", fmt.Errorf("redirect url error")
 	}
 
-	redirectValues, err := url.ParseQuery(base.RawQuery)
+	redirectValues, err := url.ParseQuery(redirect.RawQuery)
 	if err != nil {
 		return "", fmt.Errorf("redirect url error")
 	}
 
 	for k := range baseValues {
-		if _, ok := redirectValues[k]; !ok {
+		v, ok := redirectValues[k]
+		fmt.Printf("\nvalues check: %s, %v\n", v, ok)
+		if !ok {
 			return "", fmt.Errorf("redirect url error")
 		}
 	}
