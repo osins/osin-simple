@@ -10,7 +10,9 @@ type User struct {
 
 	Username string
 
-	Password string
+	Password []byte
+
+	Salt []byte
 
 	EMail string
 
@@ -24,12 +26,16 @@ func (s *User) GetId() string {
 	return s.Id
 }
 
-func (s *User) GetUsername() string {
-	return s.Username
+func (s *User) GetPassword() []byte {
+	return s.Password
 }
 
-func (s *User) GetPassword() string {
-	return s.Password
+func (s *User) GetSalt() []byte {
+	return s.Salt
+}
+
+func (s *User) GetUsername() string {
+	return s.Username
 }
 
 func (s *User) GetMobile() string {

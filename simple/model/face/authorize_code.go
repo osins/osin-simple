@@ -6,15 +6,19 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type AuthorizeCode interface {
+func NewAuthorizeDefaultCodeGen() AuthorizeCodeGen {
+	return &authorizationCodeGen{}
+}
+
+type AuthorizeCodeGen interface {
 	GenerateCode(req *request.AuthorizeRequest) (accesstoken string, err error)
 }
 
 // AuthorizeTokenGenDefault is the default authorization token generator
-type AuthorizeCodeDefault struct {
+type authorizationCodeGen struct {
 }
 
 // GenerateAuthorizeToken generates a base64-encoded UUID code
-func (a *AuthorizeCodeDefault) GenerateCode(req *request.AuthorizeRequest) (token string, err error) {
+func (a *authorizationCodeGen) GenerateCode(req *request.AuthorizeRequest) (token string, err error) {
 	return util.NewCodeVerifier(uuid.NewUUID().String()).Sha256()
 }

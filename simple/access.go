@@ -67,7 +67,7 @@ func (acc *access) createAccessData(val *validate.AccessRequestValidate) (err er
 	}
 
 	// generate access token
-	data.AccessToken, data.RefreshToken, err = acc.Conf.AccessToken.GenerateAccessToken(data, val.Client.GetNeedRefresh())
+	data.AccessToken, data.RefreshToken, err = acc.Conf.AccessTokenGen.GenerateAccessToken(data, val.Client.GetNeedRefresh())
 	if err != nil {
 		return fmt.Errorf("error generating token: %s", err.Error())
 	}

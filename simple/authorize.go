@@ -71,10 +71,21 @@ func (s *authorize) Register(req *request.AuthorizeRequest) (res *response.Autho
 	s.Conf.Logger.Info("authorize response type: %v, client need login: %v", request.AUTHORIZE_RESPONSE_CODE, val.Client.GetNeedLogin())
 
 	if req.ResponseType == request.AUTHORIZE_RESPONSE_REGISTER {
+		salt, err := s.Conf.PasswordGen.Salt()
+		if err != nil {
+			return nil, fmt.Errorf("create user salt error: %s", err)
+		}
+
+		password := s.Conf.PasswordGen.Generate([]byte(req.Password), salt)
+		if !s.Conf.PasswordGen.Compare(req.Password, salt, password) {
+			return nil, fmt.Errorf("create user password error: %s", "password compare faild.")
+		}
+
 		val.User = &entity.User{
 			Id:       uuid.UUID(uuid.New()).String(),
 			Username: req.Username,
-			Password: req.Password,
+			Password: password,
+			Salt:     salt,
 			EMail:    req.EMail,
 			Mobile:   req.Mobile,
 		}
@@ -126,7 +137,7 @@ func (s *authorize) Authorization(req *request.AuthorizeRequest) (*response.Auth
 
 func (s *authorize) createAuthorize(val *validate.AuthorizeRequestValidate) (err error) {
 	// generate token code
-	val.Res.Code, err = s.Conf.AuthorizeCode.GenerateCode(val.Req)
+	val.Res.Code, err = s.Conf.AuthorizeCodeGen.GenerateCode(val.Req)
 	if err != nil {
 		return fmt.Errorf("generate authorize code error: %s", err)
 	}

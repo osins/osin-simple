@@ -35,6 +35,7 @@ func (val *AuthorizeRequestValidate) Validate() error {
 	// must have a valid client
 	val.Client, err = val.Conf.Storage.Client.Get(val.Req.ClientId)
 	if err != nil {
+		fmt.Printf("\nclient id not exists, err: %s\n ", err)
 		return fmt.Errorf("client id not exists, client id: %s", val.Req.ClientId)
 	}
 
@@ -90,10 +91,16 @@ func (val *AuthorizeRequestValidate) Validate() error {
 			return fmt.Errorf("username or password is null.")
 		}
 
-		val.User, err = val.Conf.Storage.User.GetByPassword(val.Req.Username, val.Req.Password)
+		val.User, err = val.Conf.Storage.User.GetByCode(val.Req.Username)
 		if err != nil {
 			val.Conf.Logger.Error("find user error, username: %s, password: %s, error: %s", val.Req.Username, val.Req.Password, err)
 			return err
+		}
+
+		salt := val.User.GetSalt()
+		password := val.User.GetPassword()
+		if !val.Conf.PasswordGen.Compare(val.Req.Password, salt, password) {
+			return fmt.Errorf("user password error: %s", "password compare faild.")
 		}
 	}
 

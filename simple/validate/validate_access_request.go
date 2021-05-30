@@ -137,9 +137,16 @@ func (val *AccessRequestValidate) passwordValidate() (err error) {
 		return fmt.Errorf("user storage not bind.")
 	}
 
-	val.User, err = val.Conf.Storage.User.GetByPassword(val.Req.Username, val.Req.Password)
+	val.User, err = val.Conf.Storage.User.GetByCode(val.Req.Username)
 	if err != nil {
+		val.Conf.Logger.Error("find user error, username: %s, password: %s, error: %s", val.Req.Username, val.Req.Password, err)
 		return err
+	}
+
+	salt := val.User.GetSalt()
+	password := val.User.GetPassword()
+	if !val.Conf.PasswordGen.Compare(val.Req.Password, salt, password) {
+		return fmt.Errorf("user password error: %s", "password compare faild.")
 	}
 
 	val.Client, err = val.Conf.Storage.Client.Get(val.Req.ClientId)

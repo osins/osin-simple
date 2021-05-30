@@ -30,6 +30,9 @@ func NewServerConfig() *SimpleConfig {
 		Now: func() time.Time {
 			return time.Now()
 		},
+		AuthorizeCodeGen: face.NewAuthorizeDefaultCodeGen(),
+		AccessTokenGen:   face.NewAccessDefaultTokenGen(),
+		PasswordGen:      face.NewPasswordDefaultGen(),
 	}
 }
 
@@ -40,10 +43,11 @@ type SimpleConfig struct {
 		Access    storage.AccessStorage
 		Authorize storage.AuthorizeStorage
 	}
-	AuthorizeCode face.AuthorizeCode
-	AccessToken   face.AccessToken
-	Logger        log.Logger
-	Now           func() time.Time
+	AuthorizeCodeGen face.AuthorizeCodeGen
+	AccessTokenGen   face.AccessTokenGen
+	PasswordGen      face.PasswordGen
+	Logger           log.Logger
+	Now              func() time.Time
 
 	// Authorization token expiration in seconds (default 5 minutes)
 	AuthorizationExpiration int32

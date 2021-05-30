@@ -5,17 +5,21 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type AccessToken interface {
+func NewAccessDefaultTokenGen() AccessTokenGen {
+	return &accessDefaultTokenGen{}
+}
+
+type AccessTokenGen interface {
 	GenerateAccessToken(data Access, generaterefresh bool) (accesstoken string, refreshtoken string, err error)
 	VerifyToken(code string) (Access, error)
 }
 
 // AccessTokenGenDefault is the default authorization token generator
-type AccessTokenDefault struct {
+type accessDefaultTokenGen struct {
 }
 
 // GenerateAccessToken generates base64-encoded UUID access and refresh tokens
-func (a *AccessTokenDefault) GenerateAccessToken(data Access, generaterefresh bool) (accesstoken string, refreshtoken string, err error) {
+func (a *accessDefaultTokenGen) GenerateAccessToken(data Access, generaterefresh bool) (accesstoken string, refreshtoken string, err error) {
 	accesstoken, err = util.NewCodeVerifier(string(uuid.NewUUID())).Sha256()
 
 	if generaterefresh {
@@ -25,6 +29,6 @@ func (a *AccessTokenDefault) GenerateAccessToken(data Access, generaterefresh bo
 	return
 }
 
-func (a *AccessTokenDefault) VerifyToken(code string) (Access, error) {
+func (a *accessDefaultTokenGen) VerifyToken(code string) (Access, error) {
 	return nil, nil
 }

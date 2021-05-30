@@ -21,7 +21,7 @@ func (val *InfoRequestValidate) Validate() (err error) {
 		return fmt.Errorf("bearer is nil")
 	}
 
-	if _, err := val.Conf.AccessToken.VerifyToken(val.Req.Code); err != nil {
+	if _, err := val.Conf.AccessTokenGen.VerifyToken(val.Req.Code); err != nil {
 		val.Conf.Logger.Error("verify token faild, code: %s, access: %v", val.Req.Code, val.Access)
 		return err
 	}

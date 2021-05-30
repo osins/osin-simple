@@ -10,12 +10,16 @@ import (
 
 // NewServer creates a new server instance
 func NewSimpleServer(config *config.SimpleConfig) *SimpleServer {
-	if config.AuthorizeCode == nil {
-		config.AuthorizeCode = &face.AuthorizeCodeDefault{}
+	if config.AuthorizeCodeGen == nil {
+		config.AuthorizeCodeGen = face.NewAuthorizeDefaultCodeGen()
 	}
 
-	if config.AccessToken == nil {
-		config.AccessToken = &face.AccessTokenDefault{}
+	if config.AccessTokenGen == nil {
+		config.AccessTokenGen = face.NewAccessDefaultTokenGen()
+	}
+
+	if config.PasswordGen == nil {
+		config.PasswordGen = face.NewPasswordDefaultGen()
 	}
 
 	if config.Logger == nil {
@@ -23,19 +27,15 @@ func NewSimpleServer(config *config.SimpleConfig) *SimpleServer {
 	}
 
 	return &SimpleServer{
-		Config:        config,
-		AuthorizeCode: config.AuthorizeCode,
-		AccessToken:   config.AccessToken,
-		Now:           time.Now,
-		Logger:        config.Logger,
+		Config: config,
+		Now:    time.Now,
+		Logger: config.Logger,
 	}
 }
 
 // Server is an OAuth2 implementation
 type SimpleServer struct {
-	Config        *config.SimpleConfig
-	AuthorizeCode face.AuthorizeCode
-	AccessToken   face.AccessToken
-	Now           func() time.Time
-	Logger        log.Logger
+	Config *config.SimpleConfig
+	Now    func() time.Time
+	Logger log.Logger
 }
